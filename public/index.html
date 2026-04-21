@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Private Chat App</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+
+    <div class="auth-card" id="authCard">
+      <h1>Private Chat App</h1>
+      <p>Create account ya login karo</p>
+
+      <div class="tabs">
+        <button class="tab-btn active" id="showLoginBtn">Login</button>
+        <button class="tab-btn" id="showSignupBtn">Create Account</button>
+      </div>
+
+      <div id="loginBox">
+        <input type="text" id="loginUsername" placeholder="Username" maxlength="20" />
+        <input type="password" id="loginPassword" placeholder="Password" maxlength="30" />
+        <button id="loginBtn">Login</button>
+      </div>
+
+      <div id="signupBox" class="hidden">
+        <input type="text" id="signupUsername" placeholder="Username" maxlength="20" />
+        <input type="password" id="signupPassword" placeholder="Password" maxlength="30" />
+        <input type="password" id="signupConfirmPassword" placeholder="Confirm Password" maxlength="30" />
+        <button id="signupBtn">Create Account</button>
+      </div>
+
+      <p class="status" id="authStatus"></p>
+    </div>
+
+    <div class="card hidden" id="joinCard">
+      <div class="top-line">
+        <div>
+          <h2>Welcome, <span id="currentUserText"></span></h2>
+          <p>Room code se connect ho</p>
+        </div>
+        <button id="logoutBtn">Logout</button>
+      </div>
+
+      <div class="button-row">
+        <button id="createRoomBtn">Create New Code</button>
+      </div>
+
+      <div class="join-box">
+        <input type="text" id="roomCodeInput" placeholder="Enter 10-character code" maxlength="10" />
+        <button id="joinRoomBtn">Join Room</button>
+      </div>
+
+      <p class="status" id="roomStatus"></p>
+
+      <div class="recent-box">
+        <h3>Recent Rooms</h3>
+        <div id="recentRooms"></div>
+      </div>
+    </div>
+
+    <div class="app hidden" id="appScreen">
+      <div class="topbar">
+        <div>
+          <h2>Private Room</h2>
+          <p id="activeRoomCode">Room: -</p>
+          <p id="usersList">Users: -</p>
+        </div>
+        <div class="topbar-actions">
+          <button id="copyCodeBtn">Copy Code</button>
+          <button id="backBtn">Back</button>
+        </div>
+      </div>
+
+      <div class="main-layout">
+        <div class="chat-section">
+          <div id="messages" class="messages"></div>
+          <p id="typingText" class="typing-text"></p>
+
+          <div class="message-controls">
+            <input type="text" id="messageInput" placeholder="Type message..." />
+            <button id="sendBtn">Send</button>
+          </div>
+
+          <div class="media-controls">
+            <label class="file-label">
+              Send Photo
+              <input type="file" id="photoInput" accept="image/*" hidden />
+            </label>
+            <button id="audioCallBtn">Audio Call</button>
+            <button id="videoCallBtn">Video Call</button>
+            <button id="endCallBtn">End Call</button>
+          </div>
+        </div>
+
+        <div class="video-section">
+          <div class="video-card">
+            <h3>My Video</h3>
+            <video id="localVideo" autoplay playsinline muted></video>
+          </div>
+          <div class="video-card">
+            <h3>Other User</h3>
+            <video id="remoteVideo" autoplay playsinline></video>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
