@@ -14,7 +14,7 @@
         <div class="brand-badge">PC</div>
         <div>
           <h1>Private Chat Pro</h1>
-          <p>Secure login, private rooms, chat and calls</p>
+          <p>Secure chat, private rooms and calls</p>
         </div>
       </div>
 
@@ -73,7 +73,7 @@
         <div>
           <p class="mini-label">WELCOME</p>
           <h2>Hello, <span id="currentUserText"></span></h2>
-          <p class="subtext">Create a private room or join with a room code</p>
+          <p class="subtext">Create a private room or join using a room code</p>
         </div>
         <button class="ghost-btn" id="logoutBtn">Logout</button>
       </div>
@@ -81,13 +81,13 @@
       <div class="hero-box">
         <div class="hero-left">
           <h3>Private Room Access</h3>
-          <p>Use a 10-character room code to connect, reconnect and continue your chat.</p>
+          <p>Create a room, share the code and reconnect anytime from recent rooms.</p>
         </div>
         <button class="primary-btn" id="createRoomBtn">Create New Code</button>
       </div>
 
       <div class="join-panel">
-        <div class="input-group">
+        <div class="input-group join-grow">
           <label>Room Code</label>
           <input type="text" id="roomCodeInput" placeholder="Enter 10-character room code" maxlength="10" />
         </div>
@@ -106,49 +106,37 @@
     </div>
 
     <div class="chat-app hidden" id="appScreen">
-      <div class="chat-header">
-        <div class="chat-header-left">
-          <div class="avatar-circle" id="headerAvatar">R</div>
-          <div>
-            <h2>Private Room</h2>
-            <p id="activeRoomCode">Room: -</p>
-            <p id="usersList">Users: -</p>
+      <div class="chat-fullscreen">
+        <div class="chat-topbar">
+          <div class="chat-top-left">
+            <button class="top-icon back-circle" id="backBtn">←</button>
+            <div class="avatar-circle" id="headerAvatar">R</div>
+            <div class="chat-user-info">
+              <h2 id="chatTitle">Private Room</h2>
+              <p id="activeRoomCode">Room: -</p>
+              <p id="usersList">Users: -</p>
+            </div>
+          </div>
+
+          <div class="chat-top-right">
+            <button class="top-icon" id="audioCallBtn" title="Audio Call">📞</button>
+            <button class="top-icon" id="videoCallBtn" title="Video Call">📹</button>
+            <button class="top-icon" id="copyCodeBtn" title="Copy Code">📋</button>
           </div>
         </div>
 
-        <div class="chat-header-actions">
-          <button class="icon-btn" id="audioCallBtn" title="Audio Call">📞</button>
-          <button class="icon-btn" id="videoCallBtn" title="Video Call">📹</button>
-          <button class="icon-btn" id="copyCodeBtn" title="Copy Code">📋</button>
-          <button class="icon-btn" id="backBtn" title="Back">⬅️</button>
-        </div>
-      </div>
-
-      <div class="chat-layout">
-        <div class="chat-panel">
-          <div id="messages" class="messages"></div>
+        <div class="chat-wallpaper">
+          <div id="messages" class="messages whatsapp-style"></div>
           <p id="typingText" class="typing-text"></p>
-
-          <div class="message-bar">
-            <input type="text" id="messageInput" placeholder="Type your message..." />
-            <label class="attach-btn">
-              📎
-              <input type="file" id="photoInput" accept="image/*" hidden />
-            </label>
-            <button class="send-btn" id="sendBtn">Send</button>
-          </div>
         </div>
 
-        <div class="side-panel">
-          <div class="video-card">
-            <h3>My Video</h3>
-            <video id="localVideo" autoplay playsinline muted></video>
-          </div>
-
-          <div class="video-card">
-            <h3>Remote Video</h3>
-            <video id="remoteVideo" autoplay playsinline></video>
-          </div>
+        <div class="bottom-chatbar">
+          <label class="attach-mini">
+            📎
+            <input type="file" id="photoInput" accept="image/*" hidden />
+          </label>
+          <input type="text" id="messageInput" placeholder="Message" />
+          <button id="sendBtn" class="send-round">➤</button>
         </div>
       </div>
     </div>
