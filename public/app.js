@@ -133,6 +133,7 @@ function showLogin() {
   signupBox.classList.add("hidden");
   showLoginBtn.classList.add("active");
   showSignupBtn.classList.remove("active");
+  authStatus.textContent = "";
 }
 
 function showSignup() {
@@ -140,6 +141,7 @@ function showSignup() {
   loginBox.classList.add("hidden");
   showSignupBtn.classList.add("active");
   showLoginBtn.classList.remove("active");
+  authStatus.textContent = "";
 }
 
 showLoginBtn.addEventListener("click", showLogin);
@@ -150,22 +152,32 @@ async function signup() {
   const password = signupPassword.value.trim();
   const confirmPassword = signupConfirmPassword.value.trim();
 
-  const res = await fetch("/api/signup", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ username, password, confirmPassword })
-  });
+  if (!username || !password || !confirmPassword) {
+    authStatus.textContent = "Sab fields bharna hai";
+    return;
+  }
 
-  const data = await res.json();
-  authStatus.textContent = data.message;
+  try {
+    const res = await fetch("/api/signup", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ username, password, confirmPassword })
+    });
 
-  if (data.success) {
-    signupUsername.value = "";
-    signupPassword.value = "";
-    signupConfirmPassword.value = "";
-    showLogin();
+    const data = await res.json();
+    authStatus.textContent = data.message;
+
+    if (data.success) {
+      signupUsername.value = "";
+      signupPassword.value = "";
+      signupConfirmPassword.value = "";
+      showLogin();
+    }
+  } catch (error) {
+    console.error(error);
+    authStatus.textContent = "Signup error aaya";
   }
 }
 
@@ -173,24 +185,37 @@ async function login() {
   const username = loginUsername.value.trim();
   const password = loginPassword.value.trim();
 
-  const res = await fetch("/api/login", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ username, password })
-  });
+  if (!username || !password) {
+    authStatus.textContent = "Username aur password bharo";
+    return;
+  }
 
-  const data = await res.json();
-  authStatus.textContent = data.message;
+  try {
+    const res = await fetch("/api/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ username, password })
+    });
 
-  if (data.success) {
-    currentUser = data.user;
-    saveCurrentUser(currentUser);
-    currentUserText.textContent = currentUser.username;
-    authCard.classList.add("hidden");
-    joinCard.classList.remove("hidden");
-    renderRecentRooms();
+    const data = await res.json();
+    authStatus.textContent = data.message;
+
+    if (data.success) {
+      currentUser = data.user;
+      saveCurrentUser(currentUser);
+      currentUserText.textContent = currentUser.username;
+      authCard.classList.add("hidden");
+      joinCard.classList.remove("hidden");
+      renderRecentRooms();
+
+      loginUsername.value = "";
+      loginPassword.value = "";
+    }
+  } catch (error) {
+    console.error(error);
+    authStatus.textContent = "Login error aaya";
   }
 }
 
@@ -251,10 +276,12 @@ function showLobby() {
   appScreen.classList.add("hidden");
   joinCard.classList.remove("hidden");
   stopTracks();
+
   if (peerConnection) {
     peerConnection.close();
     peerConnection = null;
   }
+
   localVideo.srcObject = null;
   remoteVideo.srcObject = null;
 }
@@ -268,9 +295,13 @@ function createRoom() {
     showApp(response.roomId);
     saveRecentRoom(response.roomId);
     renderHistory(response.messages || []);
-    usersList.textContent = "Users: " + ((response.users || []).map((u) => u.username).join(", ") || "-");
+    usersList.textContent =
+      "Users: " + ((response.users || []).map((u) => u.username).join(", ") || "-");
 
-    addMessage(`<strong>System:</strong> Room created. Share this code: <b>${response.roomId}</b>`, "system");
+    addMessage(
+      `<strong>System:</strong> Room created. Share this code: <b>${response.roomId}</b>`,
+      "system"
+    );
   });
 }
 
@@ -278,6 +309,11 @@ function joinRoom() {
   if (!currentUser) return;
 
   const roomId = roomCodeInput.value.trim();
+
+  if (!roomId) {
+    roomStatus.textContent = "Room code dalo";
+    return;
+  }
 
   socket.emit("join-room", { roomId, username: currentUser.username }, (response) => {
     if (!response.success) {
@@ -289,7 +325,8 @@ function joinRoom() {
     showApp(response.roomId);
     saveRecentRoom(response.roomId);
     renderHistory(response.messages || []);
-    usersList.textContent = "Users: " + ((response.users || []).map((u) => u.username).join(", ") || "-");
+    usersList.textContent =
+      "Users: " + ((response.users || []).map((u) => u.username).join(", ") || "-");
   });
 }
 
@@ -355,7 +392,9 @@ photoInput.addEventListener("change", () => {
 });
 
 socket.on("chat-message", ({ text, sender, time }) => {
-  addMessage(`<strong>${escapeHtml(sender)}</strong><br>${escapeHtml(text)}<br><small>${time}</small>`);
+  addMessage(
+    `<strong>${escapeHtml(sender)}</strong><br>${escapeHtml(text)}<br><small>${time}</small>`
+  );
 });
 
 socket.on("photo-message", ({ image, sender, fileName, time }) => {
@@ -367,7 +406,10 @@ socket.on("photo-message", ({ image, sender, fileName, time }) => {
 });
 
 socket.on("system-message", ({ text, time }) => {
-  addMessage(`<strong>System:</strong> ${escapeHtml(text)}<br><small>${time || ""}</small>`, "system");
+  addMessage(
+    `<strong>System:</strong> ${escapeHtml(text)}<br><small>${time || ""}</small>`,
+    "system"
+  );
 });
 
 socket.on("typing", ({ username }) => {
@@ -457,7 +499,10 @@ socket.on("webrtc-offer", async ({ offer }) => {
       answer
     });
 
-    addMessage(`<strong>System:</strong> Incoming ${wantsVideo ? "video" : "audio"} call connected`, "system");
+    addMessage(
+      `<strong>System:</strong> Incoming ${wantsVideo ? "video" : "audio"} call connected`,
+      "system"
+    );
   } catch (error) {
     console.error(error);
     alert("Incoming call accept nahi ho paya.");
