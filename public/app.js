@@ -271,9 +271,9 @@ logoutBtn.addEventListener("click", () => {
   authCard.classList.remove("hidden");
 });
 
-function addMessage(html, className = "") {
+function addMessage(html, className = "", senderType = "other") {
   const div = document.createElement("div");
-  div.className = `message ${className}`;
+  div.className = `message ${className} ${senderType}`;
   div.innerHTML = html;
   messages.appendChild(div);
   messages.scrollTop = messages.scrollHeight;
@@ -285,15 +285,31 @@ function clearMessages() {
 
 function renderSavedMessage(msg) {
   if (msg.type === "text") {
-    addMessage(`<strong>${escapeHtml(msg.sender || "User")}</strong><br>${escapeHtml(msg.text || "")}<br><small>${msg.time || ""}</small>`);
+    const senderType =
+      currentUser && msg.sender === currentUser.username ? "self" : "other";
+
+    addMessage(
+      `<strong>${escapeHtml(msg.sender || "User")}</strong><br>${escapeHtml(msg.text || "")}<br><small>${msg.time || ""}</small>`,
+      "",
+      senderType
+    );
   } else if (msg.type === "photo") {
-    addMessage(`
-      <strong>${escapeHtml(msg.sender || "User")}</strong><br>
-      <small>${escapeHtml(msg.fileName || "photo")} • ${msg.time || ""}</small><br>
-      <img src="${msg.image}" alt="photo" />
-    `);
+    const senderType =
+      currentUser && msg.sender === currentUser.username ? "self" : "other";
+
+    addMessage(
+      `<strong>${escapeHtml(msg.sender || "User")}</strong><br>
+       <small>${escapeHtml(msg.fileName || "photo")} • ${msg.time || ""}</small><br>
+       <img src="${msg.image}" alt="photo" />`,
+      "",
+      senderType
+    );
   } else if (msg.type === "system") {
-    addMessage(`<strong>System:</strong> ${escapeHtml(msg.text || "")}<br><small>${msg.time || ""}</small>`, "system");
+    addMessage(
+      `<strong>System:</strong> ${escapeHtml(msg.text || "")}<br><small>${msg.time || ""}</small>`,
+      "system",
+      "system"
+    );
   }
 }
 
@@ -302,11 +318,22 @@ function renderHistory(history = []) {
   history.forEach(renderSavedMessage);
 }
 
+function enterRoomHistory() {
+  history.pushState({ inRoom: true }, "");
+}
+
+window.addEventListener("popstate", () => {
+  if (!appScreen.classList.contains("hidden")) {
+    showLobby();
+  }
+});
+
 function showApp(roomId) {
   currentRoom = roomId;
   joinCard.classList.add("hidden");
   appScreen.classList.remove("hidden");
   activeRoomCode.textContent = `Room: ${roomId}`;
+  enterRoomHistory();
 }
 
 function showLobby() {
@@ -335,7 +362,7 @@ function createRoom() {
     saveRecentRoom(response.roomId);
     renderHistory(response.messages || []);
     usersList.textContent = "Users: " + ((response.users || []).map((u) => u.username).join(", ") || "-");
-    addMessage(`<strong>System:</strong> Room created. Share this code: <b>${response.roomId}</b>`, "system");
+    addMessage(`<strong>System:</strong> Room created. Share this code: <b>${response.roomId}</b>`, "system", "system");
   });
 }
 
@@ -424,19 +451,35 @@ photoInput.addEventListener("change", () => {
 });
 
 socket.on("chat-message", ({ text, sender, time }) => {
-  addMessage(`<strong>${escapeHtml(sender)}</strong><br>${escapeHtml(text)}<br><small>${time}</small>`);
+  const senderType =
+    currentUser && sender === currentUser.username ? "self" : "other";
+
+  addMessage(
+    `<strong>${escapeHtml(sender)}</strong><br>${escapeHtml(text)}<br><small>${time}</small>`,
+    "",
+    senderType
+  );
 });
 
 socket.on("photo-message", ({ image, sender, fileName, time }) => {
-  addMessage(`
-    <strong>${escapeHtml(sender)}</strong><br>
-    <small>${escapeHtml(fileName)} • ${time}</small><br>
-    <img src="${image}" alt="photo" />
-  `);
+  const senderType =
+    currentUser && sender === currentUser.username ? "self" : "other";
+
+  addMessage(
+    `<strong>${escapeHtml(sender)}</strong><br>
+     <small>${escapeHtml(fileName)} • ${time}</small><br>
+     <img src="${image}" alt="photo" />`,
+    "",
+    senderType
+  );
 });
 
 socket.on("system-message", ({ text, time }) => {
-  addMessage(`<strong>System:</strong> ${escapeHtml(text)}<br><small>${time || ""}</small>`, "system");
+  addMessage(
+    `<strong>System:</strong> ${escapeHtml(text)}<br><small>${time || ""}</small>`,
+    "system",
+    "system"
+  );
 });
 
 socket.on("typing", ({ username }) => {
@@ -510,7 +553,7 @@ async function startCall(type) {
       offer
     });
 
-    addMessage(`<strong>System:</strong> ${type} call started`, "system");
+    addMessage(`<strong>System:</strong> ${type} call started`, "system", "system");
   } catch (error) {
     console.error(error);
     hideCallOverlay();
@@ -546,7 +589,7 @@ socket.on("webrtc-offer", async ({ offer }) => {
       answer
     });
 
-    addMessage(`<strong>System:</strong> Incoming ${currentCallMode} call connected`, "system");
+    addMessage(`<strong>System:</strong> Incoming ${currentCallMode} call connected`, "system", "system");
   } catch (error) {
     console.error(error);
     hideCallOverlay();
@@ -593,7 +636,7 @@ function endCall() {
     socket.emit("call-ended", { roomId: currentRoom });
   }
 
-  addMessage("<strong>System:</strong> Call ended", "system");
+  addMessage("<strong>System:</strong> Call ended", "system", "system");
 }
 
 endCallBtn.addEventListener("click", endCall);
@@ -609,7 +652,7 @@ socket.on("call-ended", () => {
   localVideo.srcObject = null;
   remoteVideo.srcObject = null;
   hideCallOverlay();
-  addMessage("<strong>System:</strong> Other user ended the call", "system");
+  addMessage("<strong>System:</strong> Other user ended the call", "system", "system");
 });
 
 muteBtn.addEventListener("click", () => {
