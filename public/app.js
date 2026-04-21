@@ -20,8 +20,13 @@ const signupConfirmPassword = document.getElementById("signupConfirmPassword");
 const loginUsername = document.getElementById("loginUsername");
 const loginPassword = document.getElementById("loginPassword");
 
+const toggleLoginPassword = document.getElementById("toggleLoginPassword");
+const toggleSignupPassword = document.getElementById("toggleSignupPassword");
+const toggleConfirmPassword = document.getElementById("toggleConfirmPassword");
+
 const authStatus = document.getElementById("authStatus");
 const currentUserText = document.getElementById("currentUserText");
+const headerAvatar = document.getElementById("headerAvatar");
 
 const createRoomBtn = document.getElementById("createRoomBtn");
 const joinRoomBtn = document.getElementById("joinRoomBtn");
@@ -39,9 +44,17 @@ const typingText = document.getElementById("typingText");
 const messageInput = document.getElementById("messageInput");
 const sendBtn = document.getElementById("sendBtn");
 const photoInput = document.getElementById("photoInput");
+
 const audioCallBtn = document.getElementById("audioCallBtn");
 const videoCallBtn = document.getElementById("videoCallBtn");
 const endCallBtn = document.getElementById("endCallBtn");
+const muteBtn = document.getElementById("muteBtn");
+const speakerBtn = document.getElementById("speakerBtn");
+
+const callOverlay = document.getElementById("callOverlay");
+const callTypeText = document.getElementById("callTypeText");
+const callUserText = document.getElementById("callUserText");
+const callStatusText = document.getElementById("callStatusText");
 
 const localVideo = document.getElementById("localVideo");
 const remoteVideo = document.getElementById("remoteVideo");
@@ -51,6 +64,9 @@ let currentRoom = "";
 let localStream = null;
 let peerConnection = null;
 let typingTimer = null;
+let speakerEnabled = false;
+let isMuted = false;
+let currentCallMode = "audio";
 
 const rtcConfig = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
@@ -61,6 +77,26 @@ function escapeHtml(text) {
   div.innerText = text;
   return div.innerHTML;
 }
+
+function setStatus(el, text, type = "") {
+  el.textContent = text;
+  el.className = "status";
+  if (type) el.classList.add(type);
+}
+
+function togglePasswordField(input, btn) {
+  if (input.type === "password") {
+    input.type = "text";
+    btn.textContent = "Hide";
+  } else {
+    input.type = "password";
+    btn.textContent = "Show";
+  }
+}
+
+toggleLoginPassword.addEventListener("click", () => togglePasswordField(loginPassword, toggleLoginPassword));
+toggleSignupPassword.addEventListener("click", () => togglePasswordField(signupPassword, toggleSignupPassword));
+toggleConfirmPassword.addEventListener("click", () => togglePasswordField(signupConfirmPassword, toggleConfirmPassword));
 
 function saveCurrentUser(user) {
   localStorage.setItem("chat_current_user", JSON.stringify(user));
@@ -89,19 +125,11 @@ function getRecentRooms() {
 
 function saveRecentRoom(roomId) {
   if (!currentUser) return;
-
   let rooms = getRecentRooms();
   rooms = rooms.filter((r) => r.roomId !== roomId);
-  rooms.unshift({
-    roomId,
-    savedAt: Date.now()
-  });
+  rooms.unshift({ roomId, savedAt: Date.now() });
   rooms = rooms.slice(0, 10);
-
-  localStorage.setItem(
-    `recent_rooms_${currentUser.username}`,
-    JSON.stringify(rooms)
-  );
+  localStorage.setItem(`recent_rooms_${currentUser.username}`, JSON.stringify(rooms));
   renderRecentRooms();
 }
 
@@ -115,10 +143,8 @@ function renderRecentRooms() {
 
   recentRooms.innerHTML = rooms.map((room) => `
     <div class="recent-item">
-      <div>
-        <strong>${room.roomId}</strong>
-      </div>
-      <button onclick="joinRecentRoom('${room.roomId}')">Rejoin</button>
+      <div><strong>${room.roomId}</strong></div>
+      <button class="rejoin-btn" onclick="joinRecentRoom('${room.roomId}')">Rejoin</button>
     </div>
   `).join("");
 }
@@ -133,7 +159,7 @@ function showLogin() {
   signupBox.classList.add("hidden");
   showLoginBtn.classList.add("active");
   showSignupBtn.classList.remove("active");
-  authStatus.textContent = "";
+  setStatus(authStatus, "");
 }
 
 function showSignup() {
@@ -141,7 +167,7 @@ function showSignup() {
   loginBox.classList.add("hidden");
   showSignupBtn.classList.add("active");
   showLoginBtn.classList.remove("active");
-  authStatus.textContent = "";
+  setStatus(authStatus, "");
 }
 
 showLoginBtn.addEventListener("click", showLogin);
@@ -153,7 +179,7 @@ async function signup() {
   const confirmPassword = signupConfirmPassword.value.trim();
 
   if (!username || !password || !confirmPassword) {
-    authStatus.textContent = "Sab fields bharna hai";
+    setStatus(authStatus, "All fields are required", "error");
     return;
   }
 
@@ -167,17 +193,23 @@ async function signup() {
     });
 
     const data = await res.json();
-    authStatus.textContent = data.message;
 
-    if (data.success) {
-      signupUsername.value = "";
-      signupPassword.value = "";
-      signupConfirmPassword.value = "";
-      showLogin();
+    if (!data.success) {
+      const msg = data.message === "Username already exists"
+        ? "This username is already taken"
+        : data.message;
+      setStatus(authStatus, msg, "error");
+      return;
     }
+
+    setStatus(authStatus, "Account created successfully", "success");
+    signupUsername.value = "";
+    signupPassword.value = "";
+    signupConfirmPassword.value = "";
+    showLogin();
   } catch (error) {
     console.error(error);
-    authStatus.textContent = "Signup error aaya";
+    setStatus(authStatus, "Signup error", "error");
   }
 }
 
@@ -186,7 +218,7 @@ async function login() {
   const password = loginPassword.value.trim();
 
   if (!username || !password) {
-    authStatus.textContent = "Username aur password bharo";
+    setStatus(authStatus, "Username and password are required", "error");
     return;
   }
 
@@ -200,22 +232,30 @@ async function login() {
     });
 
     const data = await res.json();
-    authStatus.textContent = data.message;
 
-    if (data.success) {
-      currentUser = data.user;
-      saveCurrentUser(currentUser);
-      currentUserText.textContent = currentUser.username;
-      authCard.classList.add("hidden");
-      joinCard.classList.remove("hidden");
-      renderRecentRooms();
-
-      loginUsername.value = "";
-      loginPassword.value = "";
+    if (!data.success) {
+      const msg = data.message === "Wrong password"
+        ? "Incorrect password"
+        : data.message;
+      setStatus(authStatus, msg, "error");
+      return;
     }
+
+    currentUser = data.user;
+    saveCurrentUser(currentUser);
+    currentUserText.textContent = currentUser.username;
+    headerAvatar.textContent = currentUser.username.charAt(0).toUpperCase();
+
+    authCard.classList.add("hidden");
+    joinCard.classList.remove("hidden");
+    renderRecentRooms();
+
+    loginUsername.value = "";
+    loginPassword.value = "";
+    setStatus(authStatus, "", "");
   } catch (error) {
     console.error(error);
-    authStatus.textContent = "Login error aaya";
+    setStatus(authStatus, "Login error", "error");
   }
 }
 
@@ -245,9 +285,7 @@ function clearMessages() {
 
 function renderSavedMessage(msg) {
   if (msg.type === "text") {
-    addMessage(
-      `<strong>${escapeHtml(msg.sender || "User")}</strong><br>${escapeHtml(msg.text || "")}<br><small>${msg.time || ""}</small>`
-    );
+    addMessage(`<strong>${escapeHtml(msg.sender || "User")}</strong><br>${escapeHtml(msg.text || "")}<br><small>${msg.time || ""}</small>`);
   } else if (msg.type === "photo") {
     addMessage(`
       <strong>${escapeHtml(msg.sender || "User")}</strong><br>
@@ -275,6 +313,7 @@ function showLobby() {
   currentRoom = "";
   appScreen.classList.add("hidden");
   joinCard.classList.remove("hidden");
+  hideCallOverlay();
   stopTracks();
 
   if (peerConnection) {
@@ -295,13 +334,8 @@ function createRoom() {
     showApp(response.roomId);
     saveRecentRoom(response.roomId);
     renderHistory(response.messages || []);
-    usersList.textContent =
-      "Users: " + ((response.users || []).map((u) => u.username).join(", ") || "-");
-
-    addMessage(
-      `<strong>System:</strong> Room created. Share this code: <b>${response.roomId}</b>`,
-      "system"
-    );
+    usersList.textContent = "Users: " + ((response.users || []).map((u) => u.username).join(", ") || "-");
+    addMessage(`<strong>System:</strong> Room created. Share this code: <b>${response.roomId}</b>`, "system");
   });
 }
 
@@ -309,24 +343,22 @@ function joinRoom() {
   if (!currentUser) return;
 
   const roomId = roomCodeInput.value.trim();
-
   if (!roomId) {
-    roomStatus.textContent = "Room code dalo";
+    setStatus(roomStatus, "Enter room code", "error");
     return;
   }
 
   socket.emit("join-room", { roomId, username: currentUser.username }, (response) => {
     if (!response.success) {
-      roomStatus.textContent = response.message;
+      setStatus(roomStatus, response.message, "error");
       return;
     }
 
-    roomStatus.textContent = "Joined successfully";
+    setStatus(roomStatus, "Joined successfully", "success");
     showApp(response.roomId);
     saveRecentRoom(response.roomId);
     renderHistory(response.messages || []);
-    usersList.textContent =
-      "Users: " + ((response.users || []).map((u) => u.username).join(", ") || "-");
+    usersList.textContent = "Users: " + ((response.users || []).map((u) => u.username).join(", ") || "-");
   });
 }
 
@@ -392,9 +424,7 @@ photoInput.addEventListener("change", () => {
 });
 
 socket.on("chat-message", ({ text, sender, time }) => {
-  addMessage(
-    `<strong>${escapeHtml(sender)}</strong><br>${escapeHtml(text)}<br><small>${time}</small>`
-  );
+  addMessage(`<strong>${escapeHtml(sender)}</strong><br>${escapeHtml(text)}<br><small>${time}</small>`);
 });
 
 socket.on("photo-message", ({ image, sender, fileName, time }) => {
@@ -406,10 +436,7 @@ socket.on("photo-message", ({ image, sender, fileName, time }) => {
 });
 
 socket.on("system-message", ({ text, time }) => {
-  addMessage(
-    `<strong>System:</strong> ${escapeHtml(text)}<br><small>${time || ""}</small>`,
-    "system"
-  );
+  addMessage(`<strong>System:</strong> ${escapeHtml(text)}<br><small>${time || ""}</small>`, "system");
 });
 
 socket.on("typing", ({ username }) => {
@@ -423,6 +450,18 @@ socket.on("stop-typing", () => {
 socket.on("room-users", (users) => {
   usersList.textContent = "Users: " + (users.map((u) => u.username).join(", ") || "-");
 });
+
+function showCallOverlay(type, status) {
+  currentCallMode = type;
+  callOverlay.classList.remove("hidden");
+  callTypeText.textContent = type === "video" ? "Video Call" : "Audio Call";
+  callUserText.textContent = currentRoom ? `Room ${currentRoom}` : "Private Room Call";
+  callStatusText.textContent = status;
+}
+
+function hideCallOverlay() {
+  callOverlay.classList.add("hidden");
+}
 
 async function createPeerConnection() {
   peerConnection = new RTCPeerConnection(rtcConfig);
@@ -438,6 +477,7 @@ async function createPeerConnection() {
 
   peerConnection.ontrack = (event) => {
     remoteVideo.srcObject = event.streams[0];
+    showCallOverlay(currentCallMode, "Connected");
   };
 
   if (localStream) {
@@ -449,6 +489,9 @@ async function createPeerConnection() {
 
 async function startCall(type) {
   try {
+    currentCallMode = type;
+    showCallOverlay(type, "Calling...");
+
     const constraints = {
       audio: true,
       video: type === "video"
@@ -470,7 +513,8 @@ async function startCall(type) {
     addMessage(`<strong>System:</strong> ${type} call started`, "system");
   } catch (error) {
     console.error(error);
-    alert("Camera/mic permission denied ya error aaya.");
+    hideCallOverlay();
+    alert("Camera/mic permission denied or error occurred.");
   }
 }
 
@@ -480,6 +524,9 @@ videoCallBtn.addEventListener("click", () => startCall("video"));
 socket.on("webrtc-offer", async ({ offer }) => {
   try {
     const wantsVideo = offer.sdp.includes("m=video");
+    currentCallMode = wantsVideo ? "video" : "audio";
+
+    showCallOverlay(currentCallMode, "Incoming call...");
 
     localStream = await navigator.mediaDevices.getUserMedia({
       audio: true,
@@ -499,19 +546,18 @@ socket.on("webrtc-offer", async ({ offer }) => {
       answer
     });
 
-    addMessage(
-      `<strong>System:</strong> Incoming ${wantsVideo ? "video" : "audio"} call connected`,
-      "system"
-    );
+    addMessage(`<strong>System:</strong> Incoming ${currentCallMode} call connected`, "system");
   } catch (error) {
     console.error(error);
-    alert("Incoming call accept nahi ho paya.");
+    hideCallOverlay();
+    alert("Incoming call could not connect.");
   }
 });
 
 socket.on("webrtc-answer", async ({ answer }) => {
   if (!peerConnection) return;
   await peerConnection.setRemoteDescription(answer);
+  showCallOverlay(currentCallMode, "Connected");
 });
 
 socket.on("webrtc-ice-candidate", async ({ candidate }) => {
@@ -541,6 +587,7 @@ function endCall() {
 
   localVideo.srcObject = null;
   remoteVideo.srcObject = null;
+  hideCallOverlay();
 
   if (currentRoom) {
     socket.emit("call-ended", { roomId: currentRoom });
@@ -561,7 +608,31 @@ socket.on("call-ended", () => {
 
   localVideo.srcObject = null;
   remoteVideo.srcObject = null;
+  hideCallOverlay();
   addMessage("<strong>System:</strong> Other user ended the call", "system");
+});
+
+muteBtn.addEventListener("click", () => {
+  if (!localStream) return;
+  const audioTracks = localStream.getAudioTracks();
+  if (!audioTracks.length) return;
+
+  isMuted = !isMuted;
+  audioTracks.forEach(track => {
+    track.enabled = !isMuted;
+  });
+
+  muteBtn.textContent = isMuted ? "Unmute" : "Mute";
+});
+
+speakerBtn.addEventListener("click", () => {
+  speakerEnabled = !speakerEnabled;
+
+  if (remoteVideo) {
+    remoteVideo.muted = !speakerEnabled;
+  }
+
+  speakerBtn.textContent = speakerEnabled ? "Speaker On" : "Speaker Off";
 });
 
 function autoLoginIfSaved() {
@@ -570,6 +641,7 @@ function autoLoginIfSaved() {
 
   currentUser = savedUser;
   currentUserText.textContent = currentUser.username;
+  headerAvatar.textContent = currentUser.username.charAt(0).toUpperCase();
   authCard.classList.add("hidden");
   joinCard.classList.remove("hidden");
   renderRecentRooms();
