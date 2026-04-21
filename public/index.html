@@ -3,106 +3,166 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Private Chat App</title>
+  <title>Private Chat Pro</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="container">
+  <div class="app-shell">
 
     <div class="auth-card" id="authCard">
-      <h1>Private Chat App</h1>
-      <p>Create account ya login karo</p>
+      <div class="brand-top">
+        <div class="brand-badge">PC</div>
+        <div>
+          <h1>Private Chat Pro</h1>
+          <p>Secure login, private rooms, chat and calls</p>
+        </div>
+      </div>
 
-      <div class="tabs">
+      <div class="tab-row">
         <button class="tab-btn active" id="showLoginBtn">Login</button>
         <button class="tab-btn" id="showSignupBtn">Create Account</button>
       </div>
 
       <div id="loginBox">
-        <input type="text" id="loginUsername" placeholder="Username" maxlength="20" />
-        <input type="password" id="loginPassword" placeholder="Password" maxlength="30" />
-        <button id="loginBtn">Login</button>
+        <div class="input-group">
+          <label>Username</label>
+          <input type="text" id="loginUsername" placeholder="Enter username" maxlength="20" />
+        </div>
+
+        <div class="input-group">
+          <label>Password</label>
+          <div class="password-wrap">
+            <input type="password" id="loginPassword" placeholder="Enter password" maxlength="30" />
+            <button type="button" class="toggle-pass" id="toggleLoginPassword">Show</button>
+          </div>
+        </div>
+
+        <button class="primary-btn" id="loginBtn">Login</button>
       </div>
 
       <div id="signupBox" class="hidden">
-        <input type="text" id="signupUsername" placeholder="Username" maxlength="20" />
-        <input type="password" id="signupPassword" placeholder="Password" maxlength="30" />
-        <input type="password" id="signupConfirmPassword" placeholder="Confirm Password" maxlength="30" />
-        <button id="signupBtn">Create Account</button>
+        <div class="input-group">
+          <label>Username</label>
+          <input type="text" id="signupUsername" placeholder="Choose username" maxlength="20" />
+        </div>
+
+        <div class="input-group">
+          <label>Password</label>
+          <div class="password-wrap">
+            <input type="password" id="signupPassword" placeholder="Create password" maxlength="30" />
+            <button type="button" class="toggle-pass" id="toggleSignupPassword">Show</button>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>Confirm Password</label>
+          <div class="password-wrap">
+            <input type="password" id="signupConfirmPassword" placeholder="Confirm password" maxlength="30" />
+            <button type="button" class="toggle-pass" id="toggleConfirmPassword">Show</button>
+          </div>
+        </div>
+
+        <button class="primary-btn" id="signupBtn">Create Account</button>
       </div>
 
       <p class="status" id="authStatus"></p>
     </div>
 
     <div class="card hidden" id="joinCard">
-      <div class="top-line">
+      <div class="home-top">
         <div>
-          <h2>Welcome, <span id="currentUserText"></span></h2>
-          <p>Room code se connect ho</p>
+          <p class="mini-label">WELCOME</p>
+          <h2>Hello, <span id="currentUserText"></span></h2>
+          <p class="subtext">Create a private room or join with a room code</p>
         </div>
-        <button id="logoutBtn">Logout</button>
+        <button class="ghost-btn" id="logoutBtn">Logout</button>
       </div>
 
-      <div class="button-row">
-        <button id="createRoomBtn">Create New Code</button>
+      <div class="hero-box">
+        <div class="hero-left">
+          <h3>Private Room Access</h3>
+          <p>Use a 10-character room code to connect, reconnect and continue your chat.</p>
+        </div>
+        <button class="primary-btn" id="createRoomBtn">Create New Code</button>
       </div>
 
-      <div class="join-box">
-        <input type="text" id="roomCodeInput" placeholder="Enter 10-character code" maxlength="10" />
-        <button id="joinRoomBtn">Join Room</button>
+      <div class="join-panel">
+        <div class="input-group">
+          <label>Room Code</label>
+          <input type="text" id="roomCodeInput" placeholder="Enter 10-character room code" maxlength="10" />
+        </div>
+        <button class="primary-btn" id="joinRoomBtn">Join Room</button>
       </div>
 
       <p class="status" id="roomStatus"></p>
 
       <div class="recent-box">
-        <h3>Recent Rooms</h3>
+        <div class="recent-head">
+          <h3>Recent Rooms</h3>
+          <span>Quick reconnect</span>
+        </div>
         <div id="recentRooms"></div>
       </div>
     </div>
 
-    <div class="app hidden" id="appScreen">
-      <div class="topbar">
-        <div>
-          <h2>Private Room</h2>
-          <p id="activeRoomCode">Room: -</p>
-          <p id="usersList">Users: -</p>
+    <div class="chat-app hidden" id="appScreen">
+      <div class="chat-header">
+        <div class="chat-header-left">
+          <div class="avatar-circle" id="headerAvatar">R</div>
+          <div>
+            <h2>Private Room</h2>
+            <p id="activeRoomCode">Room: -</p>
+            <p id="usersList">Users: -</p>
+          </div>
         </div>
-        <div class="topbar-actions">
-          <button id="copyCodeBtn">Copy Code</button>
-          <button id="backBtn">Back</button>
+
+        <div class="chat-header-actions">
+          <button class="icon-btn" id="audioCallBtn" title="Audio Call">📞</button>
+          <button class="icon-btn" id="videoCallBtn" title="Video Call">📹</button>
+          <button class="icon-btn" id="copyCodeBtn" title="Copy Code">📋</button>
+          <button class="icon-btn" id="backBtn" title="Back">⬅️</button>
         </div>
       </div>
 
-      <div class="main-layout">
-        <div class="chat-section">
+      <div class="chat-layout">
+        <div class="chat-panel">
           <div id="messages" class="messages"></div>
           <p id="typingText" class="typing-text"></p>
 
-          <div class="message-controls">
-            <input type="text" id="messageInput" placeholder="Type message..." />
-            <button id="sendBtn">Send</button>
-          </div>
-
-          <div class="media-controls">
-            <label class="file-label">
-              Send Photo
+          <div class="message-bar">
+            <input type="text" id="messageInput" placeholder="Type your message..." />
+            <label class="attach-btn">
+              📎
               <input type="file" id="photoInput" accept="image/*" hidden />
             </label>
-            <button id="audioCallBtn">Audio Call</button>
-            <button id="videoCallBtn">Video Call</button>
-            <button id="endCallBtn">End Call</button>
+            <button class="send-btn" id="sendBtn">Send</button>
           </div>
         </div>
 
-        <div class="video-section">
+        <div class="side-panel">
           <div class="video-card">
             <h3>My Video</h3>
             <video id="localVideo" autoplay playsinline muted></video>
           </div>
+
           <div class="video-card">
-            <h3>Other User</h3>
+            <h3>Remote Video</h3>
             <video id="remoteVideo" autoplay playsinline></video>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="call-overlay hidden" id="callOverlay">
+      <div class="call-box">
+        <p class="call-label" id="callTypeText">Calling...</p>
+        <h2 id="callUserText">Private Room Call</h2>
+        <p class="call-subtext" id="callStatusText">Connecting...</p>
+
+        <div class="call-controls">
+          <button class="call-control-btn" id="muteBtn">Mute</button>
+          <button class="call-control-btn" id="speakerBtn">Speaker Off</button>
+          <button class="end-call-btn" id="endCallBtn">End</button>
         </div>
       </div>
     </div>
