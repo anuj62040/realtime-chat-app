@@ -4,20 +4,14 @@ body {
 }
 
 video {
-  width: 45%;
-  border-radius: 10px;
+  width: 40%;
   margin: 5px;
+  border-radius: 10px;
 }
 
 #messages {
   height: 150px;
-  overflow-y: auto;
   border: 1px solid #ccc;
+  overflow-y: auto;
   margin: 10px;
-  padding: 5px;
-}
-
-#errorBox {
-  color: red;
-  font-weight: bold;
 }
