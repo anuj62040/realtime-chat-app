@@ -1,10 +1,34 @@
 const socket = io();
 
+let roomId;
 let localStream;
-let micOn = true;
-let camOn = true;
+let peer;
 
-// ✅ Start camera & mic safely
+// ---------------- ROOM ----------------
+
+function createRoom() {
+  roomId = Math.random().toString(36).substring(2, 8);
+
+  document.getElementById("roomCodeDisplay").innerText =
+    "Room Code: " + roomId;
+
+  socket.emit("join-room", roomId);
+
+  startMedia();
+}
+
+function joinRoom() {
+  roomId = document.getElementById("roomInput").value;
+
+  if (!roomId) return showError("Enter Room Code");
+
+  socket.emit("join-room", roomId);
+
+  startMedia();
+}
+
+// ---------------- MEDIA ----------------
+
 async function startMedia() {
   try {
     localStream = await navigator.mediaDevices.getUserMedia({
@@ -15,88 +39,108 @@ async function startMedia() {
     document.getElementById("localVideo").srcObject = localStream;
 
   } catch (err) {
-    showError("Camera/Mic permission denied or not working");
-    console.error(err);
+    showError("Camera/Mic permission denied");
   }
 }
 
-// ✅ Show error
-function showError(msg) {
-  document.getElementById("errorBox").innerText = msg;
+// ---------------- PEER CONNECTION ----------------
+
+function createPeer() {
+  peer = new RTCPeerConnection({
+    iceServers: [
+      { urls: "stun:stun.l.google.com:19302" }
+    ]
+  });
+
+  localStream.getTracks().forEach(track => {
+    peer.addTrack(track, localStream);
+  });
+
+  peer.ontrack = e => {
+    document.getElementById("remoteVideo").srcObject = e.streams[0];
+  };
+
+  peer.onicecandidate = e => {
+    if (e.candidate) {
+      socket.emit("ice-candidate", {
+        room: roomId,
+        candidate: e.candidate
+      });
+    }
+  };
 }
 
-// ✅ Join room
-function joinRoom() {
-  const room = document.getElementById("roomInput").value;
+// ---------------- SIGNALING ----------------
 
-  if (!room) {
-    showError("Enter Room ID");
-    return;
-  }
+socket.on("user-joined", async () => {
+  createPeer();
 
-  socket.emit("join-room", room);
+  const offer = await peer.createOffer();
+  await peer.setLocalDescription(offer);
 
-  startMedia();
+  socket.emit("offer", { room: roomId, offer });
+});
 
-  document.getElementById("chatBox").style.display = "block";
-}
+socket.on("offer", async (offer) => {
+  createPeer();
 
-// ✅ Send message
+  await peer.setRemoteDescription(offer);
+
+  const answer = await peer.createAnswer();
+  await peer.setLocalDescription(answer);
+
+  socket.emit("answer", { room: roomId, answer });
+});
+
+socket.on("answer", async (answer) => {
+  await peer.setRemoteDescription(answer);
+});
+
+socket.on("ice-candidate", async (candidate) => {
+  if (peer) await peer.addIceCandidate(candidate);
+});
+
+// ---------------- CHAT ----------------
+
 function sendMessage() {
-  const input = document.getElementById("msgInput");
-  const msg = input.value;
+  const msg = document.getElementById("msgInput").value;
 
-  if (!msg) return;
+  socket.emit("chat-message", { room: roomId, msg });
 
-  socket.emit("chat-message", msg);
   addMessage("You: " + msg);
-
-  input.value = "";
 }
 
-// ✅ Receive message
-socket.on("chat-message", (msg) => {
+socket.on("chat-message", msg => {
   addMessage("Friend: " + msg);
 });
 
-// ✅ Typing indicator
-document.getElementById("msgInput").addEventListener("input", () => {
-  socket.emit("typing");
-});
-
-socket.on("typing", () => {
-  const t = document.getElementById("typing");
-  t.innerText = "Typing...";
-  setTimeout(() => (t.innerText = ""), 1000);
-});
-
-// ✅ Add message
 function addMessage(text) {
   const div = document.createElement("div");
   div.innerText = text;
   document.getElementById("messages").appendChild(div);
 }
 
-// ✅ Mic toggle
+// ---------------- CONTROLS ----------------
+
 function toggleMic() {
-  if (!localStream) return;
-
-  micOn = !micOn;
-  localStream.getAudioTracks()[0].enabled = micOn;
+  localStream.getAudioTracks()[0].enabled =
+    !localStream.getAudioTracks()[0].enabled;
 }
 
-// ✅ Camera toggle
 function toggleCam() {
-  if (!localStream) return;
-
-  camOn = !camOn;
-  localStream.getVideoTracks()[0].enabled = camOn;
+  localStream.getVideoTracks()[0].enabled =
+    !localStream.getVideoTracks()[0].enabled;
 }
 
-// ✅ End call
 function endCall() {
-  if (!localStream) return;
+  if (peer) peer.close();
 
-  localStream.getTracks().forEach(track => track.stop());
-  showError("Call Ended");
+  if (localStream)
+    localStream.getTracks().forEach(t => t.stop());
+}
+
+// ---------------- ERROR ----------------
+
+function showError(msg) {
+  document.getElementById("errorBox").innerText = msg;
 }
