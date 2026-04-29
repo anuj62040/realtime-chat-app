@@ -5,25 +5,33 @@ const io = require("socket.io")(http);
 
 app.use(express.static("public"));
 
-io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
+io.on("connection", socket => {
 
-  socket.on("join-room", (room) => {
+  socket.on("join-room", room => {
     socket.join(room);
     socket.to(room).emit("user-joined");
   });
 
-  socket.on("chat-message", (msg) => {
-    socket.broadcast.emit("chat-message", msg);
+  socket.on("offer", data => {
+    socket.to(data.room).emit("offer", data.offer);
   });
 
-  socket.on("typing", () => {
-    socket.broadcast.emit("typing");
+  socket.on("answer", data => {
+    socket.to(data.room).emit("answer", data.answer);
   });
 
-  socket.on("disconnect", () => {
-    console.log("User disconnected");
+  socket.on("ice-candidate", data => {
+    socket.to(data.room).emit("ice-candidate", data.candidate);
   });
+
+  socket.on("chat-message", data => {
+    socket.to(data.room).emit("chat-message", data.msg);
+  });
+
 });
 
-http.listen(3000, () => console.log("Server running on http://localhost:3000"));
+const PORT = process.env.PORT || 3000;
+
+http.listen(PORT, () => {
+  console.log("Server running on port " + PORT);
+});
