@@ -1,13 +1,12 @@
 {
-  "name": "realtime-chat-app",
+  "name": "realtime-video-chat",
   "version": "1.0.0",
-  "description": "Chat app with signup, login, reconnect, history, audio/video call",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
-    "socket.io": "^4.8.1"
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2"
   }
 }
