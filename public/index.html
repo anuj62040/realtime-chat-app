@@ -1,33 +1,36 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Realtime Chat App</title>
+  <title>Video Chat App</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<h2>Realtime Chat + Call</h2>
+<h2>Realtime Video Chat</h2>
 
-<input id="roomInput" placeholder="Enter Room ID">
-<button onclick="joinRoom()">Join</button>
+<button onclick="createRoom()">Create Room</button>
+<br><br>
 
+<input id="roomInput" placeholder="Enter Room Code">
+<button onclick="joinRoom()">Join Room</button>
+
+<p id="roomCodeDisplay"></p>
 <p id="errorBox"></p>
 
-<!-- Video -->
 <video id="localVideo" autoplay muted></video>
 <video id="remoteVideo" autoplay></video>
 
-<div id="controls">
+<div>
   <button onclick="toggleMic()">Mic</button>
   <button onclick="toggleCam()">Camera</button>
   <button onclick="endCall()" style="background:red;">End</button>
 </div>
 
-<!-- Chat -->
+<hr>
+
 <div id="chatBox">
   <div id="messages"></div>
-  <p id="typing"></p>
-  <input id="msgInput" placeholder="Type message">
+  <input id="msgInput" placeholder="Message">
   <button onclick="sendMessage()">Send</button>
 </div>
 
