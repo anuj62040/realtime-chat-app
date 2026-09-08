@@ -1,41 +1,91 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Video Chat App</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relay — Realtime Video Chat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body data-stage="landing">
 
-<h2>Realtime Video Chat</h2>
+  <!-- ---------------- LANDING STAGE ---------------- -->
+  <main class="landing">
+    <div class="landing__mark">
+      <span class="landing__dot"></span>
+      <span class="landing__brand">Relay</span>
+    </div>
 
-<button onclick="createRoom()">Create Room</button>
-<br><br>
+    <div class="landing__card">
+      <h1 class="landing__title">Talk, face to face.</h1>
+      <p class="landing__subtitle">Start a room and share the code, or drop into one someone sent you. No accounts, no downloads.</p>
 
-<input id="roomInput" placeholder="Enter Room Code">
-<button onclick="joinRoom()">Join Room</button>
+      <button class="btn btn--primary" onclick="createRoom()">Create a room</button>
 
-<p id="roomCodeDisplay"></p>
-<p id="errorBox"></p>
+      <div class="landing__divider"><span>or join with a code</span></div>
 
-<video id="localVideo" autoplay muted></video>
-<video id="remoteVideo" autoplay></video>
+      <div class="landing__join">
+        <input id="roomInput" placeholder="Enter room code" autocomplete="off" spellcheck="false">
+        <button class="btn btn--ghost" onclick="joinRoom()">Join</button>
+      </div>
 
-<div>
-  <button onclick="toggleMic()">Mic</button>
-  <button onclick="toggleCam()">Camera</button>
-  <button onclick="endCall()" style="background:red;">End</button>
-</div>
+      <p id="errorBox" class="error"></p>
+    </div>
+  </main>
 
-<hr>
+  <!-- ---------------- CALL STAGE ---------------- -->
+  <main class="call">
+    <header class="call__bar">
+      <div class="call__status">
+        <span id="statusDot" class="status-dot"></span>
+        <span id="statusText" class="call__status-text">Connecting…</span>
+      </div>
 
-<div id="chatBox">
-  <div id="messages"></div>
-  <input id="msgInput" placeholder="Message">
-  <button onclick="sendMessage()">Send</button>
-</div>
+      <button class="room-chip" id="copyBtn" onclick="copyRoomCode()">
+        <span class="room-chip__label">Room</span>
+        <span id="roomCodeValue" class="room-chip__code"></span>
+      </button>
 
-<script src="/socket.io/socket.io.js"></script>
-<script src="app.js"></script>
+      <button class="icon-btn" id="chatToggle" onclick="toggleChat()" aria-label="Toggle chat">
+        Chat
+      </button>
+    </header>
 
+    <section class="stage">
+      <video id="remoteVideo" class="video video--remote" autoplay playsinline></video>
+      <div class="video__empty" id="videoEmpty">Waiting for the other person to join…</div>
+      <video id="localVideo" class="video video--local" autoplay playsinline muted></video>
+    </section>
+
+    <aside class="chat" id="chatPanel">
+      <div class="chat__header">Chat</div>
+      <div id="messages" class="chat__messages"></div>
+      <div class="chat__input">
+        <input id="msgInput" placeholder="Message" autocomplete="off">
+        <button class="icon-btn icon-btn--send" onclick="sendMessage()">Send</button>
+      </div>
+    </aside>
+
+    <footer class="controls">
+      <button id="micBtn" class="control-btn" onclick="toggleMic()" aria-label="Toggle microphone">
+        <svg viewBox="0 0 24 24" class="control-icon control-icon--on"><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z"/></svg>
+        <svg viewBox="0 0 24 24" class="control-icon control-icon--off"><path d="M19 11h-2a4.98 4.98 0 0 1-.61 2.39l1.45 1.45A6.96 6.96 0 0 0 19 11ZM4.27 3 3 4.27l6 6V11a3 3 0 0 0 4.13 2.78l1.2 1.2A4.97 4.97 0 0 1 12 15a5 5 0 0 1-5-5H5a7 7 0 0 0 6 6.92V20h2v-3.08a6.96 6.96 0 0 0 2.14-.72L18.73 19 20 17.73 4.27 3ZM15 6a3 3 0 0 0-5.94-.6l5.87 5.87c.05-.24.07-.5.07-.77V6Z"/></svg>
+      </button>
+
+      <button id="camBtn" class="control-btn" onclick="toggleCam()" aria-label="Toggle camera">
+        <svg viewBox="0 0 24 24" class="control-icon control-icon--on"><path d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4Z"/></svg>
+        <svg viewBox="0 0 24 24" class="control-icon control-icon--off"><path d="M3.27 2 2 3.27 4.73 6H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12c.24 0 .46-.09.63-.23L19.73 21 21 19.73 3.27 2ZM17 10.5V7a1 1 0 0 0-1-1H8.27l9.44 9.44c.18-.17.29-.4.29-.66v-.5l4 4v-11l-4 4Z"/></svg>
+      </button>
+
+      <button class="control-btn control-btn--end" onclick="endCall()" aria-label="End call">
+        <svg viewBox="0 0 24 24" class="control-icon control-icon--on"><path d="M12 9c-2.4 0-4.68.47-6.76 1.32a1.13 1.13 0 0 0-.61 1.45l1.05 2.6c.2.5.72.79 1.24.68a10.3 10.3 0 0 1 2.2-.27c.5 0 .9.35.98.83l.3 1.87c.09.55.57.96 1.13.9a13.9 13.9 0 0 0 5.94 0c.56.06 1.04-.35 1.13-.9l.3-1.87c.08-.48.48-.83.98-.83.75 0 1.49.09 2.2.27.52.11 1.04-.18 1.24-.68l1.05-2.6a1.13 1.13 0 0 0-.61-1.45A17.9 17.9 0 0 0 12 9Z"/></svg>
+      </button>
+    </footer>
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
